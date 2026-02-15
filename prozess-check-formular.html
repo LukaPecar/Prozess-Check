@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prozess-Check | Vor-Ort-Analyse</title>
+<style>
+  :root {
+    --bg: #0A0A0B;
+    --surface: #141416;
+    --surface2: #1C1C20;
+    --border: #2A2A30;
+    --text: #F0F0F2;
+    --text-muted: #8A8A96;
+    --accent: #C9A84C;
+    --accent-dim: rgba(201,168,76,0.08);
+    --accent-border: rgba(201,168,76,0.2);
+    --green: #22C55E;
+    --red: #EF4444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  .app { max-width:800px; margin:0 auto; padding:20px; }
+
+  /* NAV */
+  .nav { display:flex; justify-content:space-between; align-items:center; padding:20px 0; border-bottom:1px solid var(--border); margin-bottom:32px; }
+  .nav-title { font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); }
+  .nav-badge { font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:6px 14px; border-radius:100px; }
+
+  /* PROGRESS */
+  .progress-wrap { margin-bottom:32px; }
+  .progress-info { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text-muted); }
+  .progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--accent); border-radius:2px; transition:width 0.4s ease; }
+
+  /* STEPS NAV */
+  .steps-nav { display:flex; gap:6px; margin-bottom:32px; flex-wrap:wrap; }
+  .step-pill { padding:8px 16px; border-radius:100px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); transition:all 0.2s; white-space:nowrap; }
+  .step-pill:hover { border-color:var(--accent); color:var(--text); }
+  .step-pill.active { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+  .step-pill.done { background:var(--surface2); border-color:var(--green); color:var(--green); }
+
+  /* BLOCK */
+  .block { display:none; }
+  .block.active { display:block; }
+  .block-header { margin-bottom:28px; }
+  .block-tag { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+  .block-title { font-size:28px; font-weight:700; margin-bottom:8px; }
+  .block-desc { font-size:14px; color:var(--text-muted); line-height:1.6; }
+
+  /* QUESTIONS */
+  .question { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:16px; transition:border-color 0.2s; }
+  .question:focus-within { border-color:var(--accent); }
+  .q-number { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+  .q-label { font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4; }
+  .q-hint { font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.5; }
+
+  /* INPUTS */
+  textarea, input[type="text"], select {
+    width:100%; padding:12px 16px; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; color:var(--text); font-family:Arial,Helvetica,sans-serif; font-size:14px;
+    outline:none; transition:border-color 0.2s; resize:vertical;
+  }
+  textarea:focus, input[type="text"]:focus, select:focus { border-color:var(--accent); }
+  textarea { min-height:70px; }
+  select { cursor:pointer; -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A96' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center; padding-right:36px;
+  }
+  select option { background:var(--surface); color:var(--text); }
+
+  /* CHECKBOXES */
+  .checkbox-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media(max-width:500px) { .checkbox-grid { grid-template-columns:1fr; } }
+  .cb-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; cursor:pointer; transition:all 0.2s; font-size:13px; }
+  .cb-item:hover { border-color:var(--accent); }
+  .cb-item.checked { border-color:var(--accent); background:var(--accent-dim); }
+  .cb-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .cb-item.checked .cb-box { background:var(--accent); border-color:var(--accent); }
+  .cb-check { display:none; color:var(--bg); font-size:12px; font-weight:700; }
+  .cb-item.checked .cb-check { display:block; }
+
+  /* SCALE */
+  .scale-row { display:flex; gap:8px; }
+  .scale-btn { flex:1; padding:12px 8px; text-align:center; background:var(--bg); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s; }
+  .scale-btn:hover { border-color:var(--accent); }
+  .scale-btn.selected { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+  .scale-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px; }
+
+  /* BUTTONS */
+  .btn-row { display:flex; gap:12px; margin-top:28px; }
+  .btn { padding:14px 28px; border-radius:10px; font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:700; cursor:pointer; border:none; transition:all 0.2s; }
+  .btn-primary { background:var(--accent); color:var(--bg); }
+  .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(201,168,76,0.2); }
+  .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { border-color:var(--accent); }
+  .btn-export { background:var(--green); color:white; width:100%; padding:18px; font-size:16px; margin-top:16px; }
+
+  /* KUNDENINFO */
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:500px) { .info-grid { grid-template-columns:1fr; } }
+  .info-field label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
+
+  /* SUMMARY */
+  .summary-card { background:var(--surface); border:1px solid var(--accent); border-radius:14px; padding:28px; margin-bottom:16px; }
+  .summary-card h3 { font-size:16px; color:var(--accent); margin-bottom:12px; }
+  .summary-text { font-size:13px; color:var(--text-muted); line-height:1.8; white-space:pre-wrap; }
+  .summary-highlight { background:var(--accent-dim); border-left:3px solid var(--accent); padding:16px 20px; border-radius:0 10px 10px 0; margin:16px 0; font-size:14px; color:var(--text); }
+
+  .copied-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--green); color:white; padding:14px 28px; border-radius:10px; font-size:14px; font-weight:700; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:99; }
+  .copied-toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="nav">
+    <div class="nav-title">Prozess-Check</div>
+    <div class="nav-badge">Vor-Ort-Analyse</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="progress-label">Block 1 von 7</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="steps-nav" id="steps-nav"></div>
+
+  <!-- BLOCK 0: Kundendaten -->
+  <div class="block active" data-block="0">
+    <div class="block-header">
+      <div class="block-tag">Vor dem Gespräch</div>
+      <div class="block-title">Kundendaten</div>
+      <div class="block-desc">Grundinfos zum Unternehmen erfassen.</div>
+    </div>
+    <div class="info-grid">
+      <div class="info-field"><label>Unternehmen</label><input type="text" data-field="firma"></div>
+      <div class="info-field"><label>Ansprechperson</label><input type="text" data-field="person"></div>
+      <div class="info-field"><label>E-Mail</label><input type="text" data-field="email"></div>
+      <div class="info-field"><label>Telefon</label><input type="text" data-field="telefon"></div>
+      <div class="info-field"><label>Branche</label><input type="text" data-field="branche"></div>
+      <div class="info-field"><label>Anzahl Mitarbeiter</label><input type="text" data-field="ma"></div>
+      <div class="info-field"><label>Datum</label><input type="text" data-field="datum"></div>
+      <div class="info-field"><label>Berater</label><input type="text" data-field="berater"></div>
+    </div>
+  </div>
+
+  <!-- BLOCK 1: Überblick -->
+  <div class="block" data-block="1">
+    <div class="block-header">
+      <div class="block-tag">Block 1 · 5 Min.</div>
+      <div class="block-title">Überblick</div>
+      <div class="block-desc">Unternehme verstah, Kontext setze.</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 1</div>
+      <div class="q-label">Was macht ihr genau – chli in eigene Wort?</div>
+      <div class="q-hint">Kerngeschäft, Dienstleistig, Produkt</div>
+      <textarea data-field="q1"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 2</div>
+      <div class="q-label">Wer entscheidet am Schluss über neui Tools oder Systeme?</div>
+      <div class="q-hint">Name, Funktion</div>
+      <input type="text" data-field="q2">
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 3</div>
+      <div class="q-label">Was isch grad euri grössti Herausforderig im Alltag?</div>
+      <div class="q-hint">Nid strategisch – was nervt jede Tag?</div>
+      <textarea data-field="q3"></textarea>
+    </div>
+  </div>
+
+  <!-- BLOCK 2: Weg vom Kunde -->
+  <div class="block" data-block="2">
+    <div class="block-header">
+      <div class="block-tag">Block 2 · 10 Min.</div>
+      <div class="block-title">De Weg vom Kunde</div>
+      <div class="block-desc">Vo de Aafrog bis zum Abschluss – jede Schritt nachverfolge.</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 4</div>
+      <div class="q-label">Wie chömed Aafroge bi euch ine?</div>
+      <div class="q-hint">Mehrfachauswahl möglich</div>
+      <div class="checkbox-grid">
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Telefon"><div class="cb-box"><span class="cb-check">✓</span></div>Telefon</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="E-Mail"><div class="cb-box"><span class="cb-check">✓</span></div>E-Mail</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Website-Formular"><div class="cb-box"><span class="cb-check">✓</span></div>Website-Formular</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Empfehlung/Mundpropaganda"><div class="cb-box"><span class="cb-check">✓</span></div>Empfehlung</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Social Media"><div class="cb-box"><span class="cb-check">✓</span></div>Social Media</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Messen/Events"><div class="cb-box"><span class="cb-check">✓</span></div>Messen / Events</div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 5</div>
+      <div class="q-label">Was passiert mit ere Aafrog? Wer macht was demit?</div>
+      <div class="q-hint">Wer nimmt a, wer tragt ii, wer verfolgt nach?</div>
+      <textarea data-field="q5"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 6</div>
+      <div class="q-label">Wo wird d'Aafrog festghalte?</div>
+      <select data-field="q6">
+        <option value="">– Bitte wähle –</option>
+        <option>CRM-System</option>
+        <option>Excel / Google Sheets</option>
+        <option>Outlook / E-Mail</option>
+        <option>Papier / Notizen</option>
+        <option>Im Kopf</option>
+        <option>Gar nicht</option>
+        <option>Anderes</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 7</div>
+      <div class="q-label">Gits es Follow-up-System?</div>
+      <div class="q-hint">Wie wird sichergstellt, dass niemert vergesse wird?</div>
+      <select data-field="q7">
+        <option value="">– Bitte wähle –</option>
+        <option>Ja, automatisch im CRM</option>
+        <option>Ja, manuell (Erinnerungen, Kalender)</option>
+        <option>Teilweise, aber unzuverlässig</option>
+        <option>Nein, passiert nach Gefühl</option>
+        <option>Nein, gar nicht</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 8</div>
+      <div class="q-label">Wie wird es Aabot erstellt?</div>
+      <select data-field="q8">
+        <option value="">– Bitte wähle –</option>
+        <option>Von Hand in Word / Pages</option>
+        <option>Aus einer Vorlage</option>
+        <option>Aus dem ERP / CRM</option>
+        <option>Mischung aus allem</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 9</div>
+      <div class="q-label">Wie lang gahts im Schnitt vo Aafrog bis zum Aabot?</div>
+      <select data-field="q9">
+        <option value="">– Bitte wähle –</option>
+        <option>Gleicher Tag</option>
+        <option>1-2 Tage</option>
+        <option>3-5 Tage</option>
+        <option>Über 1 Woche</option>
+        <option>Unterschiedlich / unklar</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 10</div>
+      <div class="q-label">Was passiert nach em Aabot – wird nachgfasst?</div>
+      <textarea data-field="q10" placeholder="Wer macht das? Nach wie viel Tagen?"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 11</div>
+      <div class="q-label">Wenn de Uftrag chunt – wie flüsst d'Info a d'Usfüehrig witer?</div>
+      <textarea data-field="q11"></textarea>
+    </div>
+  </div>
+
+  <!-- BLOCK 3: Systeme & Tools -->
+  <div class="block" data-block="3">
+    <div class="block-header">
+      <div class="block-tag">Block 3 · 5 Min.</div>
+      <div class="block-title">Systeme & Tools</div>
+      <div class="block-desc">Was wird bruucht und wie guet spiled die zämme?</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 12</div>
+      <div class="q-label">Welchi Programme bruuched ihr im Alltag?</div>
+      <div class="q-hint">Alles markiere wo im Isatz isch</div>
+      <div class="checkbox-grid">
+        <div class="cb-item" onclick="toggleCb(this)" data-val="CRM"><div class="cb-box"><span class="cb-check">✓</span></div>CRM</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Excel/Sheets"><div class="cb-box"><span class="cb-check">✓</span></div>Excel / Sheets</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="ERP"><div class="cb-box"><span class="cb-check">✓</span></div>ERP</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Outlook/Gmail"><div class="cb-box"><span class="cb-check">✓</span></div>Outlook / Gmail</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Buchhaltung"><div class="cb-box"><span class="cb-check">✓</span></div>Buchhaltung (Bexio, Abacus...)</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="WhatsApp"><div class="cb-box"><span class="cb-check">✓</span></div>WhatsApp / Chat</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Projektmanagement"><div class="cb-box"><span class="cb-check">✓</span></div>Projektmanagement-Tool</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Papier"><div class="cb-box"><span class="cb-check">✓</span></div>Papier / Ordner</div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 13</div>
+      <div class="q-label">Redet die Systeme mitenand?</div>
+      <select data-field="q13">
+        <option value="">– Bitte wähle –</option>
+        <option>Ja, voll integriert</option>
+        <option>Teilweise (einzelne Schnittstellen)</option>
+        <option>Nein, alles wird von Hand übertragen</option>
+        <option>Weiss nicht genau</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 14</div>
+      <div class="q-label">Gits es System wo ihr eigentlich hätted, aber niemert bruucht?</div>
+      <div class="q-hint">Wenn ja – warum nid?</div>
+      <textarea data-field="q14"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 15</div>
+      <div class="q-label">Wie lang bruuchts im Schnitt, bis öpper es Dokument oder Kundeinfo findet?</div>
+      <select data-field="q15">
+        <option value="">– Bitte wähle –</option>
+        <option>Unter 1 Minute</option>
+        <option>1-5 Minuten</option>
+        <option>5-15 Minuten</option>
+        <option>Über 15 Minuten</option>
+        <option>Kommt drauf an / sehr unterschiedlich</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- BLOCK 4: Zeitfresser -->
+  <div class="block" data-block="4">
+    <div class="block-header">
+      <div class="block-tag">Block 4 · 10 Min.</div>
+      <div class="block-title">Zeitfresser</div>
+      <div class="block-desc">Wo gahnd d'Stunde verlore – und wie viel?</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 16</div>
+      <div class="q-label">Bi welne Sache verlüred ihr am meiste Zit im Alltag?</div>
+      <div class="q-hint">Alles markiere wo zutrifft</div>
+      <div class="checkbox-grid">
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Dokumente suchen"><div class="cb-box"><span class="cb-check">✓</span></div>Dokumente suchen</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Doppelte Dateneingabe"><div class="cb-box"><span class="cb-check">✓</span></div>Doppelte Dateneingabe</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Rückfragen"><div class="cb-box"><span class="cb-check">✓</span></div>Rückfragen (Info fehlt)</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Manuelle Reports"><div class="cb-box"><span class="cb-check">✓</span></div>Manuelle Reports</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="E-Mail-Chaos"><div class="cb-box"><span class="cb-check">✓</span></div>E-Mail-Chaos</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Angebote erstellen"><div class="cb-box"><span class="cb-check">✓</span></div>Angebote erstellen</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Abstimmung im Team"><div class="cb-box"><span class="cb-check">✓</span></div>Abstimmung im Team</div>
+        <div class="cb-item" onclick="toggleCb(this)" data-val="Nachfassen Kunden"><div class="cb-box"><span class="cb-check">✓</span></div>Nachfassen bei Kunden</div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 17</div>
+      <div class="q-label">Wie viel Stunde pro Woche schätzt ihr gahnd für manuelli Arbeit druf?</div>
+      <div class="q-hint">Pro Mitarbeiter im Schnitt</div>
+      <select data-field="q17">
+        <option value="">– Bitte wähle –</option>
+        <option>Unter 2 Stunden</option>
+        <option>2-5 Stunden</option>
+        <option>5-10 Stunden</option>
+        <option>10-20 Stunden</option>
+        <option>Über 20 Stunden</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 18</div>
+      <div class="q-label">Was würded ihr sofort abschaffe, wenn ihr chönted?</div>
+      <textarea data-field="q18"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 19</div>
+      <div class="q-label">Gits regelmässig Fehler oder Missverständnis will Info nid am richtige Ort isch?</div>
+      <select data-field="q19">
+        <option value="">– Bitte wähle –</option>
+        <option>Ja, regelmässig</option>
+        <option>Ab und zu</option>
+        <option>Selten</option>
+        <option>Nein</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- BLOCK 5: Kundeakquise -->
+  <div class="block" data-block="5">
+    <div class="block-header">
+      <div class="block-tag">Block 5 · 5 Min.</div>
+      <div class="block-title">Kundeakquise & Vertrieb</div>
+      <div class="block-desc">Wie systematisch werded neui Kunde gwunne?</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 20</div>
+      <div class="q-label">Wie chömed hüt neui Kunde zu euch?</div>
+      <select data-field="q20">
+        <option value="">– Bitte wähle –</option>
+        <option>Vor allem über Empfehlungen</option>
+        <option>Aktive Akquise (Outbound)</option>
+        <option>Über Website / Online</option>
+        <option>Mischung aus allem</option>
+        <option>Eher zufällig</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 21</div>
+      <div class="q-label">Hätter en Überblick, wie viel Aafroge pro Monat inecho?</div>
+      <select data-field="q21">
+        <option value="">– Bitte wähle –</option>
+        <option>Ja, wird genau getrackt</option>
+        <option>Ungefähr</option>
+        <option>Nein, kein Überblick</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 22</div>
+      <div class="q-label">Was passiert mit Kontakte wo mal aagfragt händ, aber nid kauft händ?</div>
+      <select data-field="q22">
+        <option value="">– Bitte wähle –</option>
+        <option>Werden systematisch nachverfolgt</option>
+        <option>Werden manchmal kontaktiert</option>
+        <option>Werden vergessen</option>
+        <option>Werden gar nicht erfasst</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 23</div>
+      <div class="q-label">Conversion-Rate: Wie viel Aafroge werded zu Ufträg?</div>
+      <select data-field="q23">
+        <option value="">– Bitte wähle –</option>
+        <option>Über 50%</option>
+        <option>30-50%</option>
+        <option>10-30%</option>
+        <option>Unter 10%</option>
+        <option>Keine Ahnung</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- BLOCK 6: Priorität & Entscheid -->
+  <div class="block" data-block="6">
+    <div class="block-header">
+      <div class="block-tag">Block 6 · 5 Min.</div>
+      <div class="block-title">Priorität & Entscheid</div>
+      <div class="block-desc">Was isch am dringendste – und wer entscheidet?</div>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 24</div>
+      <div class="q-label">Vo all dem wo mir bsproche händ – was isch s'dringendste?</div>
+      <textarea data-field="q24"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 25</div>
+      <div class="q-label">Wenn mir eis Problem hüt löse chönnted – welches wärs?</div>
+      <textarea data-field="q25"></textarea>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 26</div>
+      <div class="q-label">Gits scho e Budget für so öppis?</div>
+      <select data-field="q26">
+        <option value="">– Bitte wähle –</option>
+        <option>Ja, ist vorhanden</option>
+        <option>Muss zuerst genehmigt werden</option>
+        <option>Kommt auf den Vorschlag an</option>
+        <option>Kein Budget geplant</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 27</div>
+      <div class="q-label">Wer müsst no abgholt werde – oder chasch du das entscheide?</div>
+      <input type="text" data-field="q27">
+    </div>
+
+    <div class="question">
+      <div class="q-number">FRAGE 28</div>
+      <div class="q-label">Bis wänn sött das idealerwis stah?</div>
+      <select data-field="q28">
+        <option value="">– Bitte wähle –</option>
+        <option>So schnell wie möglich</option>
+        <option>Innerhalb 1 Monat</option>
+        <option>In 1-3 Monaten</option>
+        <option>Kein Zeitdruck</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- BLOCK 7: Zusammenfassung -->
+  <div class="block" data-block="7">
+    <div class="block-header">
+      <div class="block-tag">Zusammenfassung</div>
+      <div class="block-title">Analyse-Ergebnis</div>
+      <div class="block-desc">Alles auf einen Blick – bereit zum Exportieren.</div>
+    </div>
+    <div id="summary-content"></div>
+    <button class="btn btn-export" onclick="exportSummary()">Zusammenfassung kopieren</button>
+  </div>
+
+  <!-- NAVIGATION -->
+  <div class="btn-row" id="btn-row">
+    <button class="btn btn-secondary" id="btn-back" onclick="navigate(-1)">Zurück</button>
+    <button class="btn btn-primary" id="btn-next" onclick="navigate(1)" style="margin-left:auto">Weiter</button>
+  </div>
+
+</div>
+
+<div class="copied-toast" id="toast">Zusammenfassung kopiert!</div>
+
+<script>
+const BLOCKS = [
+  "Kundendaten", "Überblick", "Weg vom Kunde", "Systeme & Tools",
+  "Zeitfresser", "Kundeakquise", "Priorität", "Zusammenfassung"
+];
+
+let current = 0;
+const data = {};
+
+// Init step pills
+const nav = document.getElementById('steps-nav');
+BLOCKS.forEach((name, i) => {
+  const pill = document.createElement('div');
+  pill.className = 'step-pill' + (i === 0 ? ' active' : '');
+  pill.textContent = name;
+  pill.onclick = () => goTo(i);
+  nav.appendChild(pill);
+});
+
+function saveCurrentBlock() {
+  const block = document.querySelector(`.block[data-block="${current}"]`);
+  if (!block) return;
+
+  block.querySelectorAll('[data-field]').forEach(el => {
+    data[el.dataset.field] = el.value || '';
+  });
+
+  block.querySelectorAll('.checkbox-grid').forEach(grid => {
+    const qNum = grid.closest('.question').querySelector('.q-number').textContent;
+    const vals = [];
+    grid.querySelectorAll('.cb-item.checked').forEach(cb => vals.push(cb.dataset.val));
+    data['cb_' + qNum] = vals;
+  });
+}
+
+function restoreBlock(idx) {
+  const block = document.querySelector(`.block[data-block="${idx}"]`);
+  if (!block) return;
+
+  block.querySelectorAll('[data-field]').forEach(el => {
+    if (data[el.dataset.field]) el.value = data[el.dataset.field];
+  });
+
+  block.querySelectorAll('.checkbox-grid').forEach(grid => {
+    const qNum = grid.closest('.question').querySelector('.q-number').textContent;
+    const vals = data['cb_' + qNum] || [];
+    grid.querySelectorAll('.cb-item').forEach(cb => {
+      if (vals.includes(cb.dataset.val)) cb.classList.add('checked');
+      else cb.classList.remove('checked');
+    });
+  });
+}
+
+function goTo(idx) {
+  saveCurrentBlock();
+
+  document.querySelectorAll('.block').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.block[data-block="${idx}"]`).classList.add('active');
+
+  const pills = document.querySelectorAll('.step-pill');
+  pills.forEach((p, i) => {
+    p.classList.remove('active');
+    if (i < idx) p.classList.add('done');
+    if (i === idx) p.classList.add('active');
+  });
+
+  current = idx;
+  restoreBlock(idx);
+  updateProgress();
+  updateButtons();
+
+  if (idx === 7) buildSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function navigate(dir) { goTo(Math.max(0, Math.min(7, current + dir))); }
+
+function updateProgress() {
+  const pct = Math.round((current / 7) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-label').textContent = current === 7 ? 'Fertig!' : `Block ${current} von 7`;
+}
+
+function updateButtons() {
+  document.getElementById('btn-back').style.display = current === 0 ? 'none' : '';
+  document.getElementById('btn-next').textContent = current === 6 ? 'Zusammenfassung' : 'Weiter';
+  document.getElementById('btn-row').style.display = current === 7 ? 'none' : '';
+}
+
+function toggleCb(el) { el.classList.toggle('checked'); }
+
+function val(key) { return data[key] || '–'; }
+function cbVal(key) { return (data[key] && data[key].length) ? data[key].join(', ') : '–'; }
+
+function buildSummary() {
+  saveCurrentBlock();
+  const c = document.getElementById('summary-content');
+
+  c.innerHTML = `
+    <div class="summary-card">
+      <h3>Kundendaten</h3>
+      <div class="summary-text">Firma: ${val('firma')}
+Ansprechperson: ${val('person')}
+E-Mail: ${val('email')} · Tel: ${val('telefon')}
+Branche: ${val('branche')} · Mitarbeiter: ${val('ma')}
+Datum: ${val('datum')} · Berater: ${val('berater')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Überblick</h3>
+      <div class="summary-text">Kerngeschäft: ${val('q1')}
+Entscheider: ${val('q2')}
+Grösste Herausforderung: ${val('q3')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Weg vom Kunde</h3>
+      <div class="summary-text">Kanäle: ${cbVal('cb_FRAGE 4')}
+Prozess nach Anfrage: ${val('q5')}
+Anfrage wird erfasst in: ${val('q6')}
+Follow-up: ${val('q7')}
+Angebot erstellt via: ${val('q8')}
+Zeit bis Angebot: ${val('q9')}
+Nach dem Angebot: ${val('q10')}
+Info an Ausführung: ${val('q11')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Systeme & Tools</h3>
+      <div class="summary-text">Im Einsatz: ${cbVal('cb_FRAGE 12')}
+Integration: ${val('q13')}
+Ungenutztes System: ${val('q14')}
+Suchzeit pro Dokument: ${val('q15')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Zeitfresser</h3>
+      <div class="summary-text">Hauptzeitfresser: ${cbVal('cb_FRAGE 16')}
+Manuelle Stunden/Woche pro MA: ${val('q17')}
+Sofort abschaffen: ${val('q18')}
+Fehler durch fehlende Info: ${val('q19')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Kundeakquise</h3>
+      <div class="summary-text">Neukundenquelle: ${val('q20')}
+Anfragen-Tracking: ${val('q21')}
+Verlorene Leads: ${val('q22')}
+Conversion-Rate: ${val('q23')}</div>
+    </div>
+
+    <div class="summary-card">
+      <h3>Priorität & Entscheid</h3>
+      <div class="summary-text">Dringendstes Problem: ${val('q24')}
+1 Problem lösen: ${val('q25')}
+Budget: ${val('q26')}
+Noch abzuholen: ${val('q27')}
+Timeline: ${val('q28')}</div>
+    </div>
+
+    <div class="summary-highlight">
+      <strong>Identifizierter Haupthebel:</strong> ${val('q25') !== '–' ? val('q25') : val('q24')}
+    </div>
+  `;
+}
+
+function exportSummary() {
+  const cards = document.querySelectorAll('.summary-card, .summary-highlight');
+  let text = '=== PROZESS-CHECK ZUSAMMENFASSUNG ===\n\n';
+  cards.forEach(card => {
+    const h = card.querySelector('h3');
+    if (h) text += '--- ' + h.textContent.toUpperCase() + ' ---\n';
+    const t = card.querySelector('.summary-text');
+    if (t) text += t.textContent.trim() + '\n\n';
+    if (card.classList.contains('summary-highlight')) text += card.textContent.trim() + '\n';
+  });
+
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+
+// Init
+updateProgress();
+updateButtons();
+</script>
+</body>
+</html>
