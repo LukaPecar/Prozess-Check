@@ -110,6 +110,23 @@
 
   .copied-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--green); color:white; padding:14px 28px; border-radius:10px; font-size:14px; font-weight:700; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:99; }
   .copied-toast.show { opacity:1; }
+
+  /* Cost Calculator Rows */
+  .cost-row { display:grid; grid-template-columns:1fr 160px 120px; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); }
+  .cost-row:last-child { border-bottom:none; }
+  .cost-row-label { font-size:14px; color:var(--text); }
+  .cost-row-input { display:flex; align-items:center; gap:6px; }
+  .cost-row-input input { width:80px; text-align:center; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:Arial,Helvetica,sans-serif; font-size:14px; outline:none; -moz-appearance:textfield; }
+  .cost-row-input input::-webkit-outer-spin-button,
+  .cost-row-input input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .cost-row-input input:focus { border-color:var(--accent); }
+  .cost-row-unit { font-size:11px; color:var(--text-muted); white-space:nowrap; }
+  .cost-row-result { font-size:14px; font-weight:700; color:var(--accent); text-align:right; white-space:nowrap; }
+  @media(max-width:600px) {
+    .cost-row { grid-template-columns:1fr; gap:6px; }
+    .cost-row-input { justify-content:flex-start; }
+    .cost-row-result { text-align:left; }
+  }
 </style>
 </head>
 <body>
@@ -332,44 +349,137 @@
     </div>
   </div>
 
-  <!-- BLOCK 4: Zeitfresser -->
+  <!-- BLOCK 4: Zeitfresser + Live-Kalkulator -->
   <div class="block" data-block="4">
     <div class="block-header">
       <div class="block-tag">Block 4 · 10 Min.</div>
-      <div class="block-title">Zeitfresser</div>
-      <div class="block-desc">Wo gahnd d'Stunde verlore – und wie viel?</div>
+      <div class="block-title">Zeitfresser & Kostenrechner</div>
+      <div class="block-desc">Wo gahnd d'Stunde verlore – und was kostet das? Schätzt zäme mit em Kunde pro Prozess.</div>
     </div>
 
-    <div class="question">
-      <div class="q-number">FRAGE 16</div>
-      <div class="q-label">Bi welne Sache verlüred ihr am meiste Zit im Alltag?</div>
-      <div class="q-hint">Alles markiere wo zutrifft</div>
-      <div class="checkbox-grid">
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Dokumente suchen"><div class="cb-box"><span class="cb-check">✓</span></div>Dokumente suchen</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Doppelte Dateneingabe"><div class="cb-box"><span class="cb-check">✓</span></div>Doppelte Dateneingabe</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Rückfragen"><div class="cb-box"><span class="cb-check">✓</span></div>Rückfragen (Info fehlt)</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Manuelle Reports"><div class="cb-box"><span class="cb-check">✓</span></div>Manuelle Reports</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="E-Mail-Chaos"><div class="cb-box"><span class="cb-check">✓</span></div>E-Mail-Chaos</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Angebote erstellen"><div class="cb-box"><span class="cb-check">✓</span></div>Angebote erstellen</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Abstimmung im Team"><div class="cb-box"><span class="cb-check">✓</span></div>Abstimmung im Team</div>
-        <div class="cb-item" onclick="toggleCb(this)" data-val="Nachfassen Kunden"><div class="cb-box"><span class="cb-check">✓</span></div>Nachfassen bei Kunden</div>
+    <!-- Grunddaten für Rechner -->
+    <div class="question" style="border-color:var(--accent);">
+      <div class="q-number">GRUNDDATEN</div>
+      <div class="q-label">Für d'Berechnung bruuche mir zwei Wert:</div>
+      <div class="q-hint">Falls scho in Kundendaten erfasst, eifach überneh</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+        <div>
+          <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Anzahl betroffene Mitarbeiter</label>
+          <input type="number" id="calc-ma" data-field="calc_ma" placeholder="z.B. 25" oninput="calcCosts()" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Ø Interner Stundenlohn (CHF)</label>
+          <input type="number" id="calc-lohn" data-field="calc_lohn" placeholder="z.B. 65" oninput="calcCosts()" style="width:100%">
+        </div>
       </div>
     </div>
 
+    <!-- Prozessschritte mit Minuten-Input -->
     <div class="question">
-      <div class="q-number">FRAGE 17</div>
-      <div class="q-label">Wie viel Stunde pro Woche schätzt ihr gahnd für manuelli Arbeit druf?</div>
-      <div class="q-hint">Pro Mitarbeiter im Schnitt</div>
-      <select data-field="q17">
-        <option value="">– Bitte wähle –</option>
-        <option>Unter 2 Stunden</option>
-        <option>2-5 Stunden</option>
-        <option>5-10 Stunden</option>
-        <option>10-20 Stunden</option>
-        <option>Über 20 Stunden</option>
-      </select>
+      <div class="q-number">PROZESS-AUFSCHLÜSSELUNG</div>
+      <div class="q-label">Wie viel Zit gahd pro Mitarbeiter pro Tag für die einzelne Sache druf?</div>
+      <div class="q-hint">Schätzig in Minute pro Tag – zäme mit em Kunde usfülle</div>
+
+      <div id="cost-rows" style="margin-top:16px;">
+
+        <div class="cost-row">
+          <div class="cost-row-label">Dokumente / Informationen suchen</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Dokumente suchen" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Dokumente suchen">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Doppelte Dateneingabe (System A → B)</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Doppelte Dateneingabe" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Doppelte Dateneingabe">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Rückfragen wegen fehlender Info</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Rückfragen" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Rückfragen">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Angebote / Offerten erstellen</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Angebote erstellen" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Angebote erstellen">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">E-Mails sortieren / weiterleiten</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="E-Mail-Chaos" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="E-Mail-Chaos">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Reports / Auswertungen manuell erstellen</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Manuelle Reports" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Manuelle Reports">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Kunden nachfassen / Follow-up</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Nachfassen Kunden" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Nachfassen Kunden">–</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-row-label">Abstimmung / Koordination im Team</div>
+          <div class="cost-row-input">
+            <input type="number" class="proc-min" data-proc="Abstimmung Team" placeholder="0" oninput="calcCosts()">
+            <span class="cost-row-unit">Min/Tag</span>
+          </div>
+          <div class="cost-row-result" data-result="Abstimmung Team">–</div>
+        </div>
+
+      </div>
     </div>
 
+    <!-- Live Ergebnis -->
+    <div id="calc-result-box" class="question" style="border-color:var(--accent); display:none;">
+      <div class="q-number">ERGEBNIS</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Min. pro MA / Tag</div>
+          <div id="calc-min-day" style="font-size:28px; font-weight:700; color:var(--text);">0</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Stunden / Woche (Team)</div>
+          <div id="calc-h-week" style="font-size:28px; font-weight:700; color:var(--text);">0</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Kosten / Jahr</div>
+          <div id="calc-year" style="font-size:28px; font-weight:700; color:var(--accent);">CHF 0</div>
+        </div>
+      </div>
+      <div style="background:var(--accent-dim); border-left:3px solid var(--accent); padding:12px 16px; border-radius:0 10px 10px 0; font-size:13px; color:var(--text);">
+        <strong>Das bedeutet:</strong> <span id="calc-insight"></span>
+      </div>
+    </div>
+
+    <!-- Weitere Fragen -->
     <div class="question">
       <div class="q-number">FRAGE 18</div>
       <div class="q-label">Was würded ihr sofort abschaffe, wenn ihr chönted?</div>
@@ -546,6 +656,11 @@ function saveCurrentBlock() {
     data[el.dataset.field] = el.value || '';
   });
 
+  // Save proc-min inputs
+  block.querySelectorAll('.proc-min').forEach(el => {
+    data['proc_' + el.dataset.proc] = el.value || '';
+  });
+
   block.querySelectorAll('.checkbox-grid').forEach(grid => {
     const qNum = grid.closest('.question').querySelector('.q-number').textContent;
     const vals = [];
@@ -560,6 +675,11 @@ function restoreBlock(idx) {
 
   block.querySelectorAll('[data-field]').forEach(el => {
     if (data[el.dataset.field]) el.value = data[el.dataset.field];
+  });
+
+  // Restore proc-min inputs
+  block.querySelectorAll('.proc-min').forEach(el => {
+    if (data['proc_' + el.dataset.proc]) el.value = data['proc_' + el.dataset.proc];
   });
 
   block.querySelectorAll('.checkbox-grid').forEach(grid => {
@@ -611,6 +731,57 @@ function updateButtons() {
 
 function toggleCb(el) { el.classList.toggle('checked'); }
 
+function calcCosts() {
+  const ma = parseFloat(document.getElementById('calc-ma').value) || 0;
+  const lohn = parseFloat(document.getElementById('calc-lohn').value) || 0;
+  const rows = document.querySelectorAll('.proc-min');
+  let totalMin = 0;
+  const breakdown = [];
+
+  rows.forEach(input => {
+    const mins = parseFloat(input.value) || 0;
+    const proc = input.dataset.proc;
+    const resultEl = document.querySelector(`[data-result="${proc}"]`);
+
+    if (mins > 0 && ma > 0 && lohn > 0) {
+      const yearCost = (mins / 60) * lohn * ma * 220;
+      resultEl.textContent = 'CHF ' + Math.round(yearCost).toLocaleString('de-CH');
+      breakdown.push({ name: proc, mins, cost: yearCost });
+    } else {
+      resultEl.textContent = '–';
+    }
+    totalMin += mins;
+  });
+
+  const box = document.getElementById('calc-result-box');
+  if (totalMin > 0 && ma > 0 && lohn > 0) {
+    box.style.display = 'block';
+    const hWeek = (totalMin / 60) * ma * 5;
+    const yearTotal = (totalMin / 60) * lohn * ma * 220;
+
+    document.getElementById('calc-min-day').textContent = totalMin;
+    document.getElementById('calc-h-week').textContent = Math.round(hWeek);
+    document.getElementById('calc-year').textContent = 'CHF ' + Math.round(yearTotal).toLocaleString('de-CH');
+
+    // Find biggest cost driver
+    breakdown.sort((a, b) => b.cost - a.cost);
+    const top = breakdown[0];
+    const topPct = Math.round((top.cost / yearTotal) * 100);
+    document.getElementById('calc-insight').textContent =
+      `Pro Mitarbeiter gehen täglich ${totalMin} Minuten verloren. Der grösste Hebel ist "${top.name}" (${topPct}% der Gesamtkosten). Allein dort liessen sich CHF ${Math.round(top.cost).toLocaleString('de-CH')} pro Jahr einsparen.`;
+
+    // Store for summary
+    data['calc_total_min'] = totalMin;
+    data['calc_h_week'] = Math.round(hWeek);
+    data['calc_year_total'] = Math.round(yearTotal);
+    data['calc_breakdown'] = breakdown.map(b => `${b.name}: ${b.mins} Min/Tag → CHF ${Math.round(b.cost).toLocaleString('de-CH')}/Jahr`).join('\n');
+    data['calc_top_driver'] = top.name;
+    data['calc_top_cost'] = Math.round(top.cost);
+  } else {
+    box.style.display = 'none';
+  }
+}
+
 function val(key) { return data[key] || '–'; }
 function cbVal(key) { return (data[key] && data[key].length) ? data[key].join(', ') : '–'; }
 
@@ -656,9 +827,13 @@ Suchzeit pro Dokument: ${val('q15')}</div>
     </div>
 
     <div class="summary-card">
-      <h3>Zeitfresser</h3>
-      <div class="summary-text">Hauptzeitfresser: ${cbVal('cb_FRAGE 16')}
-Manuelle Stunden/Woche pro MA: ${val('q17')}
+      <h3>Zeitfresser & Kostenrechner</h3>
+      <div class="summary-text">${data.calc_breakdown || 'Keine Prozesse erfasst'}
+
+Gesamtkosten pro Jahr: ${data.calc_year_total ? 'CHF ' + data.calc_year_total.toLocaleString('de-CH') : '–'}
+Stunden pro Woche (Team): ${val('calc_h_week')}
+Grösster Hebel: ${val('calc_top_driver')}
+
 Sofort abschaffen: ${val('q18')}
 Fehler durch fehlende Info: ${val('q19')}</div>
     </div>
@@ -682,6 +857,7 @@ Timeline: ${val('q28')}</div>
 
     <div class="summary-highlight">
       <strong>Identifizierter Haupthebel:</strong> ${val('q25') !== '–' ? val('q25') : val('q24')}
+      ${data.calc_year_total ? '<br><strong>Geschätzte Jahreskosten durch wiederkehrende Prozesse:</strong> CHF ' + data.calc_year_total.toLocaleString('de-CH') : ''}
     </div>
   `;
 }
